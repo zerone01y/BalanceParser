@@ -1,0 +1,7 @@
+data/
+*.log
+.ipynb_checkpoints
+tests/
+.python-version
+todo-list.md
+BankStatement

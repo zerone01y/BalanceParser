@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "BalanceParser"
+version = "0.1.0"
+description = "CLI tool that converts text PDFs of bank statements into YNAB/Actual-ready CSVs and archives the originals."
+authors = ["zerone <98453380+zerone01y@users.noreply.github.com>"]
+readme = "README.md"
+packages = [
+    { include = "*", from = "src" },
+]
+
+[tool.poetry.scripts]
+balanceparser = "cli:main"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+loguru = "^0.7.2"
+matplotlib = "^3.5.0"
+pandas = "^2.1.1"
+camelot-py = "^1.0.9"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
