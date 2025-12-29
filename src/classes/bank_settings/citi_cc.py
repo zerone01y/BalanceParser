@@ -20,6 +20,7 @@ class CITI_CC(BankSettings):
 
     @staticmethod
     def page_filter(p):
+        p = p.replace(" ", "")
         return (
             "CARD" in p and "Detailedtransactionscanbefoundonthefollowingpages" not in p
         )
@@ -32,7 +33,7 @@ class CITI_CC(BankSettings):
         ]
 
     def extract_date(self, p):
-        datestr = re.search(self.DATE_REGEX, p)
+        datestr = re.search(self.DATE_REGEX, p.replace(" ", ""))
         if datestr:
             date = pd.to_datetime(datestr[1], format="%B%d,%Y")
             return date - timedelta(weeks=4)

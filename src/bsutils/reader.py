@@ -81,6 +81,7 @@ def read_statement(file, statement_reader=None):
 
 
 def auto_assign_reader(page_content):
+    page_content = page_content.replace(" ", "")
     for patterns, reader_cls in SETTING_DICT:
         if all(re.findall(pattern, page_content) for pattern in patterns):
             reader = reader_cls()

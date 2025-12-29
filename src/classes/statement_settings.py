@@ -13,14 +13,14 @@ SETTING_DICT = (
     (
         (
             "UOB",
-            "Statement of Account",
+            "StatementofAccount",
         ),
         UOB_ACC,
     ),
     (
         (
             "UOB",
-            r"Credit Card\(s\) Statement",
+            r"CreditCard\(s\)Statement",
         ),
         UOB_CC,
     ),
