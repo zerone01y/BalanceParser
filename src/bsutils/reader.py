@@ -75,7 +75,7 @@ def read_statement(file, statement_reader=None):
                             and len(current_table) > 0
                         ):
                             processed_table_titles.append(current_table.account)
-                        current_table.output()
+                        current_table.save()
                         current_table = None
     archive_file(file, statement_reader, processed_table_titles, date)
 
@@ -119,18 +119,17 @@ def get_table_count_and_index(df, table_header_mask, current_table, table_title_
 def handle_table_detection(
     current_table, table_title_list, df, table_header_mask, table_header_index, tc, date
 ):
-    # 新表格检测
+    # 没有正在读取的表格：新表格检测
     if current_table is None:
         if len(table_title_list):
             logger.debug("Detected start of a new table")
             account = table_title_list.pop(0)
             logger.success(f"Processing account table: {account}")
-            current_table = StatementTables(account=account, date=date)
         else:
             logger.debug("Starting unnamed table capture")
             account = "Unknown"
             logger.info(f"Processing table with placeholder account '{account}'")
-            current_table = StatementTables(account=account, date=date)
+        current_table = StatementTables(account=account, date=date)
     # 已有表格，选择表格数据
     if current_table is not None and isinstance(
         table_header_mask, (pd.DataFrame, pd.Series)

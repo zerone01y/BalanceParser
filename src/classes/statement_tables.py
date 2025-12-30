@@ -17,7 +17,7 @@ class StatementTables(list):
     def set_account(self, account):
         self.account = account
 
-    def output(self):
+    def save(self):
         if self.is_complete:
             statement = (pd.concat(self, axis=0))[
                 ["Date", "Payee", "Memo", "Outflow", "Inflow"]
@@ -35,6 +35,8 @@ class StatementTables(list):
                 Date.min().strftime("%d%b%Y") + "-" + Date.max().strftime("%d%b%Y")
             )
             logger.success(f"\tStatement period: {periods}")
+            if self.account == "Unknown":
+                self.account += f"_{datetime.now().strftime('%Y%m%d%H%M%S')}"
             filename = f"{self.account}_{periods}".replace(" ", "_")
             if self.balance:
                 filename += f"_balance={self.balance}.csv"

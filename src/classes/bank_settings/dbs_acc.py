@@ -5,11 +5,15 @@ import pandas as pd
 from bsutils.logger import logger
 from const import DATE_FORMATTER
 from .base import BankSettings
+import re
 
 
 class DBS_ACC(BankSettings):
     PAGE_FILTER_REGEX = r"Transaction Details"
-    TITLE_REGEX = r"\n(.+Account)\s+Account No. ([\d+-]+)"
+    TITLE_REGEX = re.compile(
+        r"(?P<account>(?P<name>.+Account)\s+Account No\. (?P<number>[\d+-]+))"
+        r"|CURRENCY:\s*(?P<currency>.+)"
+    )
     DATE_REGEX = r"Transaction Details as of\s*(\d+)\s*([A-z]+)\s*(\d+)"
 
     def __init__(self):
@@ -21,12 +25,49 @@ class DBS_ACC(BankSettings):
             "row_tol": 5,
         }
 
+    def extract_titles(self, p: str) -> list:
+        """
+        Extract account identifiers for the tables found on the page.
+
+        When subclasses define :data:`TITLE_REGEX`, the default implementation
+        will apply that pattern. Most concrete readers override this method to
+        build cleaner names (see :mod:`classes.bank_settings.dbs_acc`).
+        """
+        results = []
+        last_account = None
+        last_emitted = None
+        for m in self.TITLE_REGEX.finditer(p):
+            if m.group("currency"):
+                currency = m.group("currency")
+                if last_account is None:
+                    # orphan currency → ignore
+                    continue
+
+                results.append((*last_account, currency))
+                last_emitted = "currency"
+            elif m.group("account"):
+                if last_emitted == "account":
+                    # add accounts only if it was not followed by a currency
+                    results.append(last_account)
+                # Account appears
+                name = m.group("name")
+                number = m.group("number")
+
+                last_account = (name, number)
+                last_emitted = "account"
+
+        if last_emitted == "account":
+            results.append(last_account)
+
+        return ["-".join(s).replace("SINGAPORE DOLLAR", "").strip("-") for s in results]
+
     def is_table_end(self, df):
-        crcid = df[df[0].str.contains("CURRENCY:")].index
+        # crcid = df[df[0].str.contains("CURRENCY:")].index
         mask = df.iloc[:, 1].str.startswith("Total Balance")
         if mask.any():
             return True, df.loc[mask, 4].iloc[0].replace(",", "")
-        return ((len(crcid) and df.loc[crcid[0], 0] != "CURRENCY: SINGAPORE DOLLAR"), 0)
+        # return ((len(crcid) and df.loc[crcid[0], 0] != "CURRENCY: SINGAPORE DOLLAR"), 0)
+        return False, 0
 
     def header_locator(self, df):
         return (df.iloc[:, 0] == "Date") & (df.iloc[:, 1] == "Description")
@@ -34,9 +75,9 @@ class DBS_ACC(BankSettings):
     def row_filter(self, df):
         if not len(df.columns):
             return df
-        crcid = df[df[0].str.contains("CURRENCY:")].index
-        if len(crcid) and df.loc[crcid[0], 0] != "CURRENCY: SINGAPORE DOLLAR":
-            return pd.DataFrame(index=df.index)
+        # crcid = df[df[0].str.contains("CURRENCY:")].index
+        # if len(crcid) and df.loc[crcid[0], 0] != "CURRENCY: SINGAPORE DOLLAR":
+        #    return pd.DataFrame(index=df.index)
         mask = df[1].str.contains(
             r"(?:Balance Brought Forward|Balance Carried Forward)"
         )
@@ -58,8 +99,8 @@ class DBS_ACC(BankSettings):
         mask = ~Date.isna()
         id_series = df["index"].where(mask)
         df["id"] = id_series.ffill().astype("Int64")
-        if df.loc[~mask][[2, 3, 4]].any(axis=1).any():
-            rm_entries = df[~mask][df[~mask][[2, 3, 4]].any(axis=1)]
+        if df.loc[~mask][[0, 2, 3, 4]].any(axis=1).any():
+            rm_entries = df[~mask][df[~mask][[0, 2, 3, 4]].any(axis=1)]
             df = df.drop(rm_entries.index)
             if len(df) <= 1:
                 return pd.DataFrame(
